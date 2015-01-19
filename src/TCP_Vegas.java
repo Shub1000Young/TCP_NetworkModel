@@ -3,7 +3,7 @@ public class TCP_Vegas extends Client{
 
 	public TCP_Vegas(long instanceRTT, int instanceMaxInFlight) {
 		super(instanceRTT, instanceMaxInFlight);
-		// TODO Auto-generated constructor stub
+		// TODO code algorithm here
 	}
 
 	@Override

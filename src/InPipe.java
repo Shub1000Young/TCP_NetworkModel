@@ -1,11 +1,11 @@
 
-public class InPipe extends Pipe{
+public class InPipe extends Pipe implements Runnable{
 
 	public InPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
 	}
 
-	public void addPacket(Packet packet){
+	public void addAck(Packet packet){
 		packet.setTimeSentIn(System.nanoTime());
 		stream.add(packet);
 	}
@@ -16,5 +16,24 @@ public class InPipe extends Pipe{
 	
 	private void ackReady(){
 		//need to sort out Map of clients to get this working
+	}
+	
+	protected void moveAcks(){
+		while(!stream.isEmpty()){
+			long now = System.nanoTime();
+			if(stream.peek().getTimeSentIn()+pipeLength>=now){
+				ackReady();
+			}
+		}
+		@SuppressWarnings("unused")
+		int waitCount = 0;
+		while(stream.isEmpty()){
+			waitCount++;
+		}
+		moveAcks();
+	}
+	
+	public void run(){
+		moveAcks();
 	}
 }

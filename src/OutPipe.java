@@ -1,5 +1,5 @@
 
-public class OutPipe extends Pipe{
+public class OutPipe extends Pipe implements Runnable{
 
 	public OutPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
@@ -17,8 +17,8 @@ public class OutPipe extends Pipe{
 	private void sendPacket(){
 		if (Server.lock.tryLock()) {
 	          try {
-	        	  if(!Server.queueFull()){
-	        		  Server.queueAdd(stream.poll());
+	        	  if(!Server.bufferFull()){
+	        		  Server.bufferAdd(stream.poll());
 	        	  }else{
 	        		  dropPacket();
 	        	  }
@@ -29,7 +29,7 @@ public class OutPipe extends Pipe{
 	          dropPacket();
 	      }
 	}
-	//TODO needs to be a runnable
+
 	protected void movePackets(){
 		while(!stream.isEmpty()){
 			long now = System.nanoTime();
@@ -42,6 +42,10 @@ public class OutPipe extends Pipe{
 		while(stream.isEmpty()){
 			waitCount++;
 		}
+		movePackets();
+	}
+	
+	public void run(){
 		movePackets();
 	}
 }

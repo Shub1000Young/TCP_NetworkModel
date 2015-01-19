@@ -3,7 +3,7 @@ public class TCP_Tahoe extends Client{
 
 	public TCP_Tahoe(long instanceRTT, int instanceMaxInFlight) {
 		super(instanceRTT, instanceMaxInFlight);
-		// TODO Auto-generated constructor stub
+		// TODO code algorithm here
 	}
 
 	@Override

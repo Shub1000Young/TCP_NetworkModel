@@ -1,7 +1,7 @@
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class Client {
+public class Client implements Runnable{
 	protected long RTT; //nanoseconds
 	protected int maxInFlight;
 	protected int clientNumber;
@@ -26,10 +26,12 @@ public class Client {
 		lastAck = 0;
 		ackWaiting = false;
 		clientNumber = ++numberOfClients;
+		//create and start pipes
 		OutPipe outPipe = new OutPipe(clientNumber, RTT/2);
-		outPipe.movePackets();
-		@SuppressWarnings("unused")
+		new Thread(outPipe).start();
 		InPipe inPipe = new InPipe(clientNumber, RTT/2);
+		new Thread(inPipe).start();
+		// initialise lock for ack handling
 		lock = new ReentrantLock();
 	}
 	//does what it says on the tin
@@ -42,25 +44,7 @@ public class Client {
 		Packet packet = new Packet(this.clientNumber, this.numberOfPackets);
 		return packet;
 	}
-/*	
-    							  /   \       
-_                         )      ((   ))     (
-(@)                      /|\      ))_((     /|\
-|-|                     / | \    (/\|/\)   / | \                      (@)
-| | -------------------/--|-voV---\`|'/--Vov-|--\---------------------|-|
-|-|                         '^`   (o o)  '^`                          | |
-| |                               `\Y/'                               |-|
-|-|                                                                   | |
-| | need to make these next two thread safe. Spinlock should be enough|-|
-|-|                                                                   | |
-| |                                                                   |-|
-|_|___________________________________________________________________| |
-(@)              l   /\ /         ( (       \ /\   l                `\|-|
-				 l /   V           \ \       V   \ l                  (@)
-				 l/                _) )_          \I
-								   `\ /'
-								     `  
-*/	
+
 	public void notifyAckWaiting(){
 	     lock.lock();  // block until condition holds
 	     try {
@@ -97,7 +81,7 @@ _                         )      ((   ))     (
 		// overridden in subclasses according to algorithms
 	}
 	
-	//TODO make this a runnable
+
 	protected void sendPackets(){
 		//send packets until maximum packets in flight or interrupted by an ack
 		while((packetsInFlight<maxInFlight)&&(ackWaiting==false)){
@@ -123,6 +107,10 @@ _                         )      ((   ))     (
 			handleAck();
 			sendPackets();
 		}
+	}
+	
+	public void run(){
+		sendPackets();
 	}
 	
 

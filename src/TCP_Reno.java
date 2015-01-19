@@ -3,7 +3,7 @@ public class TCP_Reno extends Client{
 
 	public TCP_Reno(long instanceRTT, int instanceMaxInFlight) {
 		super(instanceRTT, instanceMaxInFlight);
-		// TODO Auto-generated constructor stub
+		// TODO code algorithm here
 	}
 	@Override
 	protected void handleSuccess(Packet packet){
