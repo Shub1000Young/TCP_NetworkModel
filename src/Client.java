@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -13,7 +14,9 @@ public class Client implements Runnable{
 	protected boolean ackWaiting;
 	protected OutPipe outPipe;
 	protected InPipe inPipe;
-	private static int numberOfClients = 0;
+	//dragons, set to -1  for now to handle zero indexing in arraylist. Need to refactor for clarity.
+	private static int numberOfClients = -1;
+	public static ArrayList<Client> clientArray= new ArrayList<Client>();
 	private ReentrantLock lock;
 	
 	public Client(long instanceRTT, int instanceMaxInFlight){
@@ -33,6 +36,7 @@ public class Client implements Runnable{
 		new Thread(inPipe).start();
 		// initialise lock for ack handling
 		lock = new ReentrantLock();
+		clientArray.add(this);
 	}
 	//does what it says on the tin
 	public static int getClientCount(){
@@ -87,7 +91,7 @@ public class Client implements Runnable{
 		while((packetsInFlight<maxInFlight)&&(ackWaiting==false)){
 			Packet packet = createPacket();
 			long now = System.nanoTime();
-			//wait until time interval for next packet ~200ns + time to add packet to outPipe granularity
+			//wait until time interval for next packet **~200ns + time to add packet to outPipe** test latency and granularity of nanotime to confirm
 			while(now<last+rateOfFire){
 				now = System.nanoTime();
 			}
@@ -109,6 +113,7 @@ public class Client implements Runnable{
 		}
 	}
 	
+	@Override
 	public void run(){
 		sendPackets();
 	}

@@ -1,8 +1,9 @@
 
 public class InPipe extends Pipe implements Runnable{
-
+	
 	public InPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
+
 	}
 
 	public void addAck(Packet packet){
@@ -13,9 +14,11 @@ public class InPipe extends Pipe implements Runnable{
 	public Packet getAck(){
 		return stream.poll();
 	}
-	
+	//A bit ugly but should do the job
+	//Gets client associated with pipe from Client class arraylist and notifies it 
+	//that ack is waiting to be processed 
 	private void ackReady(){
-		//need to sort out Map of clients to get this working
+		Client.clientArray.get(pipeNumber).notifyAckWaiting();
 	}
 	
 	protected void moveAcks(){
@@ -32,7 +35,7 @@ public class InPipe extends Pipe implements Runnable{
 		}
 		moveAcks();
 	}
-	
+	@Override
 	public void run(){
 		moveAcks();
 	}

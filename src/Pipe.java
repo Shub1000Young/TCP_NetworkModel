@@ -1,7 +1,7 @@
 import java.util.LinkedList;
 
 public class Pipe {
-	private final int pipeNumber;
+	protected final int pipeNumber;
 	protected long pipeLength;
 	protected LinkedList<Packet> stream; 
 

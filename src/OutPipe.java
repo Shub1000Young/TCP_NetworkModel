@@ -10,10 +10,6 @@ public class OutPipe extends Pipe implements Runnable{
 		stream.add(packet);
 	}
 	
-	private void dropPacket(){
-		stream.remove();
-	}
-	
 	private void sendPacket(){
 		if (Server.lock.tryLock()) {
 	          try {
@@ -23,7 +19,7 @@ public class OutPipe extends Pipe implements Runnable{
 	              Server.lock.unlock();
 	          }
 	      } else {
-	          dropPacket();
+	          stream.remove();
 	      }
 	}
 
@@ -41,7 +37,7 @@ public class OutPipe extends Pipe implements Runnable{
 		}
 		movePackets();
 	}
-	
+	@Override
 	public void run(){
 		movePackets();
 	}
