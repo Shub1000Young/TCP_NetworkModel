@@ -17,11 +17,8 @@ public class OutPipe extends Pipe implements Runnable{
 	private void sendPacket(){
 		if (Server.lock.tryLock()) {
 	          try {
-	        	  if(!Server.bufferFull()){
-	        		  Server.bufferAdd(stream.poll());
-	        	  }else{
-	        		  dropPacket();
-	        	  }
+	        	  Server.bufferAdd(stream.poll());
+
 	          } finally {
 	              Server.lock.unlock();
 	          }
