@@ -6,7 +6,7 @@ public class InPipe extends Pipe{
 	}
 
 	public void addPacket(Packet packet){
-		packet.setTimeSentIn(System.currentTimeMillis());
+		packet.setTimeSentIn(System.nanoTime());
 		stream.add(packet);
 	}
 	
@@ -15,6 +15,6 @@ public class InPipe extends Pipe{
 	}
 	
 	private void ackReady(){
-		
+		//need to sort out Map of clients to get this working
 	}
 }

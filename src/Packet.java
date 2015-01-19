@@ -1,5 +1,6 @@
 
 public class Packet {
+	//Just a POJO with packet details
 	private final int originatingClientNumber;
 	private final int packetNumber;
 	private Long timeSentIn;
