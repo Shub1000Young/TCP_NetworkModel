@@ -6,6 +6,7 @@ public class Packet {
 	private Long timeSentIn;
 	private Long timeSentOut;
 	private Long arrivalTime;
+	private Long arrivalRateOfFire;
 	
 	public Packet(int originatingClient, int packetId){
 		originatingClientNumber = originatingClient;
@@ -13,6 +14,7 @@ public class Packet {
 		timeSentIn = null;
 		timeSentOut = null;
 		arrivalTime = null;
+		arrivalRateOfFire = null;
 	}
 	
 	public int getOriginatingClientNumber(){
@@ -35,6 +37,10 @@ public class Packet {
 		return arrivalTime;
 	}
 	
+	public Long getArrivalRateOfFire(){
+		return arrivalRateOfFire;
+	}
+	
 	public void setTimeSentIn(long timeIn){
 		timeSentIn = timeIn;
 	}
@@ -45,5 +51,9 @@ public class Packet {
 	
 	public void setArrivalTime(long timeArrived){
 		arrivalTime = timeArrived;
+	}
+	
+	public void setArrivalRateOfFire(long rateOfFire){
+		arrivalRateOfFire = rateOfFire;
 	}
 }

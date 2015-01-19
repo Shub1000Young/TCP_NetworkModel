@@ -12,7 +12,7 @@ public class TCP_Vegas extends Client{
 	}
 	
 	@Override
-	protected void handleLoss(Packet packet){
+	protected void handleLoss(){
 		
 	}
 }

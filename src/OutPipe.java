@@ -10,6 +10,7 @@ public class OutPipe extends Pipe implements Runnable{
 		stream.add(packet);
 	}
 	
+	
 	private void sendPacket(){
 		if (Server.lock.tryLock()) {
 	          try {
@@ -22,7 +23,7 @@ public class OutPipe extends Pipe implements Runnable{
 	          stream.remove();
 	      }
 	}
-
+	
 	protected void movePackets(){
 		while(!stream.isEmpty()){
 			long now = System.nanoTime();

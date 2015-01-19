@@ -11,7 +11,7 @@ public class TCP_Reno extends Client{
 	}
 	
 	@Override
-	protected void handleLoss(Packet packet){
+	protected void handleLoss(){
 		
 	}
 }

@@ -12,7 +12,7 @@ public class TCP_Tahoe extends Client{
 	}
 	
 	@Override
-	protected void handleLoss(Packet packet){
+	protected void handleLoss(){
 		
 	}
 }

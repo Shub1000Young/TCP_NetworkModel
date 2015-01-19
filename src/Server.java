@@ -29,8 +29,9 @@ public class Server implements Runnable{
 	}
 
 	private void unloadBuffer(){
-		now = System.nanoTime();
+
 		while(!buffer.isEmpty()){
+			now = System.nanoTime();
 			if(last+handlingDelay>=now){
 				sendAck();
 				last = System.nanoTime();
