@@ -1,8 +1,11 @@
 
-public class OutPipe extends Pipe implements Runnable{
 
+
+public class OutPipe extends Pipe implements Runnable{	
+	
 	public OutPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
+		
 	}
 	
 	public void addPacket(Packet packet){
@@ -38,8 +41,12 @@ public class OutPipe extends Pipe implements Runnable{
 		}
 		movePackets();
 	}
+	
+	
 	@Override
 	public void run(){
-		movePackets();
+		while(running){
+			movePackets();
+		}
 	}
 }

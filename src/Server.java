@@ -2,12 +2,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Server implements Runnable{
-	private int bufferCapacity;
-	private long handlingDelay;
+	private static int bufferCapacity;
+	private static long handlingDelay;
 	private static LinkedBlockingQueue<Packet> buffer;
 	public static ReentrantLock lock; 
 	private static long now;
 	private static long last;
+	volatile static boolean running = true;
+	
 	public Server(int capacity, long delay){
 		bufferCapacity = capacity;
 		handlingDelay = delay;
@@ -21,14 +23,14 @@ public class Server implements Runnable{
 	}
 	
 
-	private void sendAck(){
+	private static void sendAck(){
 		Packet ack = buffer.poll();
 		int destinationPipe = ack.getOriginatingClientNumber();
 		ack.setTimeSentIn(System.nanoTime());
 		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
 	}
 
-	private void unloadBuffer(){
+	private static void unloadBuffer(){
 
 		while(!buffer.isEmpty()){
 			now = System.nanoTime();
@@ -44,9 +46,16 @@ public class Server implements Runnable{
 		}
 		unloadBuffer();
 	}
+	
+	public static void interrupt(){
+		running = false;
+	}
+	
 	@Override
 	public void run() {
-		unloadBuffer();
+		while(running){
+			unloadBuffer();
+		}
 	}
 	
 	

@@ -22,7 +22,7 @@ public class Client implements Runnable{
 	private ReentrantLock lock;
 	protected ArrayList<Packet> resultArray;
 	public static ArrayList<ArrayList<Packet>> masterResultArray = new ArrayList<ArrayList<Packet>>();
-	public boolean running;
+	volatile boolean running;
 	
 	public Client(long instanceRTT, int instanceMaxInFlight){
 		RTT = instanceRTT;
@@ -35,8 +35,11 @@ public class Client implements Runnable{
 		ackWaiting = false;
 		clientNumber = ++numberOfClients;
 		//create and start pipes
-		(new Thread(new OutPipe(clientNumber, RTT/2))).start();
-		(new Thread(new InPipe(clientNumber, RTT/2))).start();
+		OutPipe outPipe= new OutPipe(clientNumber, RTT/2);
+		outPipe.run();
+		InPipe inPipe = new InPipe(clientNumber, RTT/2);
+		inPipe.run();
+		//(new Thread(new InPipe(clientNumber, RTT/2))).start();
 		// initialise lock for ack handling
 		lock = new ReentrantLock();
 		clientArray.add(this);
@@ -139,12 +142,17 @@ public class Client implements Runnable{
 			sendPackets();
 		}
 	}
+	public void interrupt(){
+		running = false;
+	}
 	
 	@Override
 	public void run(){
 		while(running){
 			sendPackets();
 		}
+		outPipe.interrupt();
+		inPipe.interrupt();
 	}
 	
 

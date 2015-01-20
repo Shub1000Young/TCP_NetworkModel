@@ -4,13 +4,13 @@ public class Pipe {
 	protected final int pipeNumber;
 	protected long pipeLength;
 	protected LinkedList<Packet> stream; 
-
+	protected volatile boolean running = true;
 	
 	public Pipe (int pipeNum, long pipeLen){
 		pipeNumber = pipeNum;
 		pipeLength = pipeLen;
-		@SuppressWarnings("unused")
-		LinkedList<Packet> stream =  new LinkedList<Packet>(); 
+		stream = new LinkedList<Packet>();
+
 	}
 	
 	public int getPipeNumber(){
@@ -25,5 +25,7 @@ public class Pipe {
 		pipeLength = newPipeLength;
 	}
 	
-	
+	public void interrupt(){
+		running = false;
+	}
 }

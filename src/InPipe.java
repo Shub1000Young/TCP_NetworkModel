@@ -1,8 +1,10 @@
 
 public class InPipe extends Pipe implements Runnable{
 	
+	
 	public InPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
+
 
 	}
 
@@ -37,6 +39,8 @@ public class InPipe extends Pipe implements Runnable{
 	}
 	@Override
 	public void run(){
-		moveAcks();
+		while(running){
+			moveAcks();
+		}
 	}
 }
