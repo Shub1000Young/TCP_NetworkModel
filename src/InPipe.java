@@ -26,7 +26,7 @@ public class InPipe extends Pipe implements Runnable{
 	protected void moveAcks(){
 		while(!stream.isEmpty()){
 			long now = System.nanoTime();
-			if(stream.peek().getTimeSentIn()+pipeLength>=now){
+			if(stream.peek().getTimeSentIn()+pipeLength<=now){
 				ackReady();
 			}
 		}

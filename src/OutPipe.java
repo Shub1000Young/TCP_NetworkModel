@@ -5,11 +5,13 @@ public class OutPipe extends Pipe implements Runnable{
 	
 	public OutPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
+		System.out.println("outpipe created");
 		
 	}
 	
 	public void addPacket(Packet packet){
 		packet.setTimeSentOut(System.nanoTime());
+		System.out.println("packet "+ packet.getPacketNumber() +" added to stream");
 		stream.add(packet);
 	}
 	
@@ -30,7 +32,8 @@ public class OutPipe extends Pipe implements Runnable{
 	protected void movePackets(){
 		while(!stream.isEmpty()){
 			long now = System.nanoTime();
-			if(stream.peek().getTimeSentOut()+pipeLength>=now){
+			if(stream.peek().getTimeSentOut()+pipeLength<=now){
+				System.out.println("packet sent to server");
 				sendPacket();
 			}
 		}

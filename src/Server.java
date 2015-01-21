@@ -16,10 +16,12 @@ public class Server implements Runnable{
 		buffer = new LinkedBlockingQueue<Packet>(bufferCapacity);
 		lock = new ReentrantLock();
 		last = System.nanoTime();
+		System.out.println("server created");
 	}
 	
 	public static void bufferAdd(Packet packet){
-			buffer.offer(packet);
+		System.out.println("packet added to buffer");	
+		buffer.offer(packet);
 	}
 	
 
@@ -28,13 +30,14 @@ public class Server implements Runnable{
 		int destinationPipe = ack.getOriginatingClientNumber();
 		ack.setTimeSentIn(System.nanoTime());
 		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
+		System.out.println("packet sent to desination");
 	}
 
 	private static void unloadBuffer(){
 
 		while(!buffer.isEmpty()){
 			now = System.nanoTime();
-			if(last+handlingDelay>=now){
+			if(last+handlingDelay<=now){
 				sendAck();
 				last = System.nanoTime();
 			}

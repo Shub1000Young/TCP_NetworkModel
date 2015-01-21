@@ -35,10 +35,11 @@ public class Client implements Runnable{
 		ackWaiting = false;
 		clientNumber = ++numberOfClients;
 		//create and start pipes
-		OutPipe outPipe= new OutPipe(clientNumber, RTT/2);
-		outPipe.run();
-		InPipe inPipe = new InPipe(clientNumber, RTT/2);
-		inPipe.run();
+		outPipe= new OutPipe(clientNumber, RTT/2);
+		new Thread(outPipe).start();
+		inPipe = new InPipe(clientNumber, RTT/2);
+		new Thread(inPipe).start();
+		//inPipe.run();
 		//(new Thread(new InPipe(clientNumber, RTT/2))).start();
 		// initialise lock for ack handling
 		lock = new ReentrantLock();
@@ -46,6 +47,7 @@ public class Client implements Runnable{
 		resultArray= new ArrayList<Packet>();
 		masterResultArray.add(resultArray);
 		running = true;
+		System.out.println("Client created");
 	}
 	//does what it says on the tin
 	public static int getClientCount(){
@@ -60,6 +62,7 @@ public class Client implements Runnable{
 
 	public void notifyAckWaiting(){
 	     lock.lock();  // block until condition holds
+	     System.out.println("ack waiting at client " + clientNumber);
 	     try {
 	    	 ackWaiting = true;
 	     } finally {
@@ -91,26 +94,29 @@ public class Client implements Runnable{
 				ackWaiting = false;
 				sendPackets();
 			}
+			System.out.println("ack handled");
 	    } finally {
 		       lock.unlock();
 		     }
 	}
 	
 	protected void handleSuccess(Packet ack){
-		rateOfFire = rateOfFire+(rateOfFire*(long)0.01);//overridden in subclasses according to algorithms
+		rateOfFire = rateOfFire-(rateOfFire*(long)0.01);//overridden in subclasses according to algorithms
 		ack.setArrivalRateOfFire(rateOfFire);
 		resultArray.add(ack);
 		ack.setArrivalRateOfFire(rateOfFire);
-		resultArray.add(ack);		
+		resultArray.add(ack);
+		System.out.println("poof");
 	}
 	
 	protected void handleLoss(){
-		rateOfFire=rateOfFire*(long)0.5;// overridden in subclasses according to algorithms
+		rateOfFire=rateOfFire+(rateOfFire*(long)0.5);// overridden in subclasses according to algorithms
 		
 		highestBeforeFail=numberOfPackets;
 		numberOfPackets = lastAck;
 		packetsInFlight = 0;
 		recovering = true;
+		System.out.println("missed");
 		
 	}
 
@@ -125,6 +131,7 @@ public class Client implements Runnable{
 				now = System.nanoTime();
 			}
 			outPipe.addPacket(packet);
+			System.out.println("packet sent to outpipe" + clientNumber);
 			packetsInFlight++;
 			last = System.nanoTime();
 		}
