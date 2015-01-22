@@ -5,13 +5,13 @@ public class OutPipe extends Pipe implements Runnable{
 	
 	public OutPipe(int pipeNum, long pipeLen) {
 		super(pipeNum, pipeLen);
-		System.out.println("outpipe created");
+		System.out.println("outpipe "+ pipeNumber +" created");
 		
 	}
 	
 	public void addPacket(Packet packet){
 		packet.setTimeSentOut(System.nanoTime());
-		System.out.println("packet "+ packet.getPacketNumber() +" added to stream");
+		System.out.println("packet "+ packet.getPacketNumber() +" added to stream" + pipeNumber);
 		stream.add(packet);
 	}
 	

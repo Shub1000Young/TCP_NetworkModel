@@ -30,7 +30,7 @@ public class Server implements Runnable{
 		int destinationPipe = ack.getOriginatingClientNumber();
 		ack.setTimeSentIn(System.nanoTime());
 		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
-		System.out.println("packet sent to desination");
+		System.out.println("packet sent to destination");
 	}
 
 	private static void unloadBuffer(){
