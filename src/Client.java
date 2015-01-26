@@ -2,7 +2,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.ReentrantLock;
+
 
 
 public class Client implements Runnable{
@@ -22,8 +22,6 @@ public class Client implements Runnable{
 	//dragons, set to -1  for now to handle zero indexing in arraylist. Need to refactor for clarity.
 	private static int numberOfClients = -1;
 	public static ArrayList<Client> clientArray= new ArrayList<Client>();
-	
-	private ReentrantLock lock;
 	protected ArrayList<Packet> resultArray;
 	public static ArrayList<ArrayList<Packet>> masterResultArray = new ArrayList<ArrayList<Packet>>();
 	protected LinkedBlockingQueue<Packet> buffer; 
@@ -43,13 +41,11 @@ public class Client implements Runnable{
 		new Thread(outPipe).start();
 		inPipe = new InPipe(clientNumber, RTT/2);
 		new Thread(inPipe).start();
-		// initialise lock for ack handling
-		lock = new ReentrantLock();
-		clientArray.add(this);
-		resultArray= new ArrayList<Packet>();
+		resultArray= new ArrayList<Packet>();		
 		masterResultArray.add(resultArray);
 		running = true;
 		buffer = new LinkedBlockingQueue<Packet>();
+		clientArray.add(this);
 		System.out.println("Client created");
 	}
 	//does what it says on the tin
@@ -65,31 +61,30 @@ public class Client implements Runnable{
 
 
 	protected void handleAck(){
-		lock.lock();  // block until condition holds
-	    try {
-	    	Packet packet = buffer.poll();//inPipe.getAck();
+
+	    	Packet packet = buffer.poll();
 	    	packet.setArrivalTime(System.nanoTime());
 	    	//add to logging here
 			if((packet.getPacketNumber()==lastAck+1)){
 				if(recovering){
 					recovering = false;
-				}
+					System.out.println("recovered");
+				}	
 				packetsInFlight--;
 				handleSuccess(packet);
 				sendPackets();
+				System.out.println("ack handled sucessfully");
 			}else if(recovering){
 				//do nothing with acks already in flight unless packets lost again
 				if(packet.getPacketNumber()>highestBeforeFail){
 					handleLoss();
+					System.out.println("loss during recovery");
 				}
 			}else{	
 				handleLoss();
+				System.out.println("packet loss");
 				sendPackets();
 			}
-			System.out.println("ack handled");
-	    } finally {
-		       lock.unlock();
-		     }
 	}
 	
 	protected void handleSuccess(Packet ack){
@@ -97,7 +92,6 @@ public class Client implements Runnable{
 		ack.setArrivalRateOfFire(rateOfFire);
 		resultArray.add(ack);
 		lastAck = ack.getPacketNumber();
-		System.out.println("hit");
 	}
 	
 	protected void handleLoss(){
@@ -106,9 +100,7 @@ public class Client implements Runnable{
 		highestBeforeFail=numberOfPackets;
 		numberOfPackets = lastAck;
 		packetsInFlight = 0;
-		recovering = true;
-		System.out.println("missed");
-		
+		recovering = true;		
 	}
 
 
