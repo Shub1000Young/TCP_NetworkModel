@@ -41,6 +41,7 @@ public class OutPipe extends Pipe implements Runnable{
 			if(now-stream.peek().getTimeSentOut() >= 0){
 				System.out.println("packet sent to server");
 				sendPacket();
+				
 			}
 		}
 		@SuppressWarnings("unused")

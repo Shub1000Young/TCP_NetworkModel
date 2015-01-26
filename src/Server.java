@@ -20,17 +20,20 @@ public class Server implements Runnable{
 	}
 	
 	public static void bufferAdd(Packet packet){
+		Boolean sBufferAdded;
 		System.out.println("packet added to buffer");	
-		buffer.offer(packet);
+		sBufferAdded = buffer.offer(packet); //bug right here??
+		System.out.println("Sbuffer "+ sBufferAdded);
+		System.out.println("server buffer length="+ buffer.size());
 	}
-	
+
 
 	private static void sendAck(){
 		Packet ack = buffer.poll();
 		int destinationPipe = ack.getOriginatingClientNumber();
 		ack.setTimeSentIn(System.nanoTime());
 		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
-		System.out.println("packet sent to destination");
+		System.out.println("packet sent to destination " + destinationPipe);
 	}
 
 	private static void unloadBuffer(){
