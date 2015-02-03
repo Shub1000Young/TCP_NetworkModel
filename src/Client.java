@@ -1,8 +1,7 @@
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.SynchronousQueue;
 
 
 public class Client implements Runnable{
@@ -16,7 +15,6 @@ public class Client implements Runnable{
 	protected int lastAck; // packet number of last ack received
 	protected int highestBeforeFail;
 	protected boolean recovering;
-	//protected boolean ackWaiting;
 	protected OutPipe outPipe;
 	protected InPipe inPipe;
 	//dragons, set to -1  for now to handle zero indexing in arraylist. Need to refactor for clarity.
@@ -24,7 +22,8 @@ public class Client implements Runnable{
 	public static ArrayList<Client> clientArray= new ArrayList<Client>();
 	protected ArrayList<Packet> resultArray;
 	public static ArrayList<ArrayList<Packet>> masterResultArray = new ArrayList<ArrayList<Packet>>();
-	protected LinkedBlockingQueue<Packet> buffer; 
+	protected DelayQueue<Packet> buffer;
+	public SynchronousQueue<Packet> sync;
 	volatile boolean running;
 	
 	public Client(long instanceRTT, int instanceMaxInFlight){
@@ -36,15 +35,11 @@ public class Client implements Runnable{
 		last = System.nanoTime()-rateOfFire;// make first packet available to send immediately
 		lastAck = 0;
 		clientNumber = ++numberOfClients;
-		//create and start pipes
-		outPipe= new OutPipe(clientNumber, RTT/2);
-		new Thread(outPipe).start();
-		inPipe = new InPipe(clientNumber, RTT/2);
-		new Thread(inPipe).start();
+		sync = new SynchronousQueue<Packet>();
 		resultArray= new ArrayList<Packet>();		
 		masterResultArray.add(resultArray);
 		running = true;
-		buffer = new LinkedBlockingQueue<Packet>();
+		buffer = new DelayQueue<Packet>();
 		clientArray.add(this);
 		System.out.println("Client created");
 	}
@@ -55,24 +50,30 @@ public class Client implements Runnable{
 	//spits out a packet POJO
 	protected Packet createPacket(){
 		++numberOfPackets;
-		Packet packet = new Packet(clientNumber, numberOfPackets);
+		Packet packet = new Packet(clientNumber, numberOfPackets, RTT/2);
 		return packet;
 	}
 
 
 	protected void handleAck(){
 
-	    	Packet packet = buffer.poll();
-	    	packet.setArrivalTime(System.nanoTime());
+	    	Packet packet = null;
+			while(packet == null){
+				try {
+					packet = sync.take();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 	    	//add to logging here
 			if((packet.getPacketNumber()==lastAck+1)){
 				if(recovering){
 					recovering = false;
 					System.out.println("recovered");
 				}	
-				packetsInFlight--;
 				handleSuccess(packet);
-				sendPackets();
+				packetsInFlight--;
 				System.out.println("ack handled sucessfully");
 			}else if(recovering){
 				//do nothing with acks already in flight unless packets lost again
@@ -83,8 +84,8 @@ public class Client implements Runnable{
 			}else{	
 				handleLoss();
 				System.out.println("packet loss");
-				sendPackets();
 			}
+			handleAck();
 	}
 	
 	protected void handleSuccess(Packet ack){
@@ -103,56 +104,47 @@ public class Client implements Runnable{
 		recovering = true;		
 	}
 
-
-	protected void sendPackets(){
-		//send packets until maximum packets in flight or interrupted by an ack
-		while((packetsInFlight<maxInFlight)&&(buffer.isEmpty())){
+	protected void bufferPackets(){
+		while((packetsInFlight<maxInFlight)){
 			Packet packet = createPacket();
-			long now = System.nanoTime();
-			//wait until time interval for next packet **~200ns + time to add packet to outPipe** test latency and granularity of nanotime to confirm
-			while(now<last+rateOfFire){
-				now = System.nanoTime();
-			}
-			outPipe.addPacket(packet);
-			System.out.println("packet sent to outpipe" + clientNumber);
 			packetsInFlight++;
-			last = System.nanoTime();
-		}
-		if(!buffer.isEmpty()){
-			handleAck();
-			sendPackets();
-		}else{
-			//busy-wait for ack to arrive
-			@SuppressWarnings("unused")
-			int waitCount = 0;
-			while(buffer.isEmpty()){
-				waitCount++;
-			}
-			handleAck();
-			sendPackets();
-		}
-	}
-	public void interrupt(){
-		running = false;
-	}
-	public static void saveData(){
-		try {
-		    FileOutputStream fos = new FileOutputStream("output");
-		    ObjectOutputStream oos = new ObjectOutputStream(fos);   
-		    oos.writeObject(masterResultArray); 
-		    oos.close(); 
-		} catch(Exception ex) {
-		    ex.printStackTrace();
+			buffer.add(packet);
 		}
 	}
 	
+	protected void sendPackets(){
+		Packet packet = null;
+		try {
+			packet =buffer.take();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		while(buffer == null){
+			//do nothing, probably not necessary, try taking out later
+		}
+		try{
+			Boolean serverAvailable=Server.lock.tryLock();
+			if(serverAvailable){
+				Server.bufferAdd(packet);
+			}
+		}finally{
+			Server.lock.unlock();
+		}
+		sendPackets();
+	}
+
+	public void interrupt(){
+		running = false;
+	}
+
+	
 	@Override
 	public void run(){
+
 		while(running){
-			sendPackets();
+			bufferPackets();
 		}
-		outPipe.interrupt();
-		inPipe.interrupt();
 	}
 	
 

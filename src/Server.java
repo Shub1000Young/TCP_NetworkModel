@@ -1,10 +1,11 @@
+import java.util.concurrent.DelayQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Server implements Runnable{
 	private static int bufferCapacity;
 	private static long handlingDelay;
-	private static LinkedBlockingQueue<Packet> buffer;
+	private static DelayQueue<Packet> buffer;
 	public static ReentrantLock lock; 
 	private static long now;
 	private static long last;
@@ -13,17 +14,17 @@ public class Server implements Runnable{
 	public Server(int capacity, long delay){
 		bufferCapacity = capacity;
 		handlingDelay = delay;
-		buffer = new LinkedBlockingQueue<Packet>(bufferCapacity);
+		buffer = new DelayQueue<Packet>();
 		lock = new ReentrantLock();
 		last = System.nanoTime();
 		System.out.println("server created");
 	}
-	
+	//data invariant:
 	public static void bufferAdd(Packet packet){
-		Boolean sBufferAdded;
+		Boolean USBufferAdded;
 		System.out.println("packet added to buffer");	
-		sBufferAdded = buffer.offer(packet); //bug right here??
-		System.out.println("Sbuffer "+ sBufferAdded);
+		USBufferAdded = buffer.offer(packet); //bug right here??
+		System.out.println("USbuffer "+ USBufferAdded);
 		System.out.println("server buffer length="+ buffer.size());
 	}
 
@@ -31,7 +32,7 @@ public class Server implements Runnable{
 	private static void sendAck(){
 		Packet ack = buffer.poll();
 		int destinationPipe = ack.getOriginatingClientNumber();
-		ack.setTimeSentIn(System.nanoTime());
+		ack.setTimeSentOut(System.nanoTime());
 		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
 		System.out.println("packet sent to destination " + destinationPipe);
 	}
