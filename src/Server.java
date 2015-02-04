@@ -5,41 +5,59 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Server implements Runnable{
 	private static int bufferCapacity;
 	private static long handlingDelay;
-	private static DelayQueue<Packet> buffer;
+	private static DelayQueue<Packet> outputQueue;
 	public static ReentrantLock lock; 
 	private static long now;
 	private static long last;
+	public static LinkedBlockingQueue<Packet> buffer;
 	volatile static boolean running = true;
 	
 	public Server(int capacity, long delay){
 		bufferCapacity = capacity;
 		handlingDelay = delay;
-		buffer = new DelayQueue<Packet>();
+		buffer = new LinkedBlockingQueue<Packet>(bufferCapacity);
+		outputQueue = new DelayQueue<Packet>();
 		lock = new ReentrantLock();
 		last = System.nanoTime();
 		System.out.println("server created");
 	}
 	//data invariant:
 	public static void bufferAdd(Packet packet){
-		Boolean USBufferAdded;
-		System.out.println("packet added to buffer");	
-		USBufferAdded = buffer.offer(packet); //bug right here??
-		System.out.println("USbuffer "+ USBufferAdded);
-		System.out.println("server buffer length="+ buffer.size());
+		Boolean bufferAdded;
+		System.out.println("packet added to outputQueue");	
+		bufferAdded = buffer.offer(packet); //bug right here??
+		System.out.println("USoutputQueue "+ bufferAdded);
+		System.out.println("server outputQueue length="+ buffer.size());
 	}
 
 
 	private static void sendAck(){
-		Packet ack = buffer.poll();
-		int destinationPipe = ack.getOriginatingClientNumber();
+		Packet ack= null;
+		try {
+			ack = outputQueue.take();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+/*		while(ack == null){
+			//do nothing, same as client try removing later
+		}*/
+		int destination = ack.getOriginatingClientNumber();
 		ack.setTimeSentOut(System.nanoTime());
-		Client.clientArray.get(destinationPipe).inPipe.addAck(ack);
-		System.out.println("packet sent to destination " + destinationPipe);
+		try {
+			Client.clientArray.get(destination).sync.put(ack);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("packet sent to destination " + destination);
+		sendAck();
+		
 	}
 
-	private static void unloadBuffer(){
+/*	private static void unloadoutputQueue(){
 
-		while(!buffer.isEmpty()){
+		while(!outputQueue.isEmpty()){
 			now = System.nanoTime();
 			if(last+handlingDelay<=now){
 				sendAck();
@@ -48,11 +66,11 @@ public class Server implements Runnable{
 		}
 		@SuppressWarnings("unused")
 		int waitCount = 0;
-		while(buffer.isEmpty()){
+		while(outputQueue.isEmpty()){
 			waitCount++;
 		}
-		unloadBuffer();
-	}
+		unloadoutputQueue();
+	}*/
 	
 	public static void interrupt(){
 		running = false;
@@ -61,7 +79,7 @@ public class Server implements Runnable{
 	@Override
 	public void run() {
 		while(running){
-			unloadBuffer();
+			sendAck();
 		}
 	}
 	

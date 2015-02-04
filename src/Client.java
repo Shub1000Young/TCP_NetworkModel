@@ -1,10 +1,28 @@
 import java.util.ArrayList;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.SynchronousQueue;
 
 
 public class Client implements Runnable{
+	
+	//class data structures
+	public static ArrayList<Client> clientArray= new ArrayList<Client>();
+	public static ArrayList<ArrayList<Packet>> masterResultArray = new ArrayList<ArrayList<Packet>>();
+
+	//class variables
+	//set to -1  for now to handle zero indexing in arraylist.
+	private static int numberOfClients = -1;
+
+	//instance data structures
+	protected ArrayList<Packet> resultArray;	
+	protected DelayQueue<Packet> uploadPipe;
+	public SynchronousQueue<Packet> sync;
+	
+	//child thread instances
+	AckHandler ackHandler;
+	PacketSender packetSender;
+	
+	//instance variables
 	protected long RTT; //nanoseconds
 	protected int maxInFlight;
 	protected int clientNumber;
@@ -12,19 +30,10 @@ public class Client implements Runnable{
 	protected int packetsInFlight;
 	protected long rateOfFire; // time between packets in ns
 	protected long last; // time of last packet sent (nanotime)
-	protected int lastAck; // packet number of last ack received
-	protected int highestBeforeFail;
-	protected boolean recovering;
-	protected OutPipe outPipe;
-	protected InPipe inPipe;
-	//dragons, set to -1  for now to handle zero indexing in arraylist. Need to refactor for clarity.
-	private static int numberOfClients = -1;
-	public static ArrayList<Client> clientArray= new ArrayList<Client>();
-	protected ArrayList<Packet> resultArray;
-	public static ArrayList<ArrayList<Packet>> masterResultArray = new ArrayList<ArrayList<Packet>>();
-	protected DelayQueue<Packet> buffer;
-	public SynchronousQueue<Packet> sync;
-	volatile boolean running;
+//	protected int lastAck; // packet number of last ack received
+//	protected int highestBeforeFail;
+
+	volatile boolean running = false;
 	
 	public Client(long instanceRTT, int instanceMaxInFlight){
 		RTT = instanceRTT;
@@ -33,14 +42,17 @@ public class Client implements Runnable{
 		packetsInFlight = 0;
 		rateOfFire = RTT*2;//override this in algorithms with slow start
 		last = System.nanoTime()-rateOfFire;// make first packet available to send immediately
-		lastAck = 0;
 		clientNumber = ++numberOfClients;
 		sync = new SynchronousQueue<Packet>();
 		resultArray= new ArrayList<Packet>();		
 		masterResultArray.add(resultArray);
-		running = true;
-		buffer = new DelayQueue<Packet>();
+		uploadPipe = new DelayQueue<Packet>();
+		ackHandler = new AckHandler(clientNumber);
+		packetSender = new PacketSender(clientNumber);
 		clientArray.add(this);
+		new Thread(ackHandler).start();
+		new Thread(packetSender).start();
+		running = true;
 		System.out.println("Client created");
 	}
 	//does what it says on the tin
@@ -55,84 +67,34 @@ public class Client implements Runnable{
 	}
 
 
-	protected void handleAck(){
-
-	    	Packet packet = null;
-			while(packet == null){
-				try {
-					packet = sync.take();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-	    	//add to logging here
-			if((packet.getPacketNumber()==lastAck+1)){
-				if(recovering){
-					recovering = false;
-					System.out.println("recovered");
-				}	
-				handleSuccess(packet);
-				packetsInFlight--;
-				System.out.println("ack handled sucessfully");
-			}else if(recovering){
-				//do nothing with acks already in flight unless packets lost again
-				if(packet.getPacketNumber()>highestBeforeFail){
-					handleLoss();
-					System.out.println("loss during recovery");
-				}
-			}else{	
-				handleLoss();
-				System.out.println("packet loss");
-			}
-			handleAck();
-	}
-	
 	protected void handleSuccess(Packet ack){
 		rateOfFire = rateOfFire-(rateOfFire*(long)0.01);//overridden in subclasses according to algorithms
 		ack.setArrivalRateOfFire(rateOfFire);
 		resultArray.add(ack);
-		lastAck = ack.getPacketNumber();
-	}
-	
-	protected void handleLoss(){
-		rateOfFire=rateOfFire+(rateOfFire*(long)0.5);// overridden in subclasses according to algorithms
-		
-		highestBeforeFail=numberOfPackets;
-		numberOfPackets = lastAck;
+		ackHandler.lastAck = ack.getPacketNumber();
+		packetsInFlight--;
+}
+	//interrupt here?
+	protected void handleLoss(){		
+		rateOfFire=rateOfFire+(rateOfFire*(long)0.5);// overridden in subclasses according to algorithms	
+		ackHandler.highestBeforeFail = numberOfPackets;
+		numberOfPackets = ackHandler.lastAck;
 		packetsInFlight = 0;
-		recovering = true;		
-	}
+		
+}
 
 	protected void bufferPackets(){
 		while((packetsInFlight<maxInFlight)){
-			Packet packet = createPacket();
-			packetsInFlight++;
-			buffer.add(packet);
+			//avoid rate of fire changes interfering
+			long rof = rateOfFire;
+			if (System.nanoTime()+rof>=last+rof) {
+				Packet packet = createPacket();
+				packetsInFlight++;
+				uploadPipe.add(packet);
+			}
 		}
 	}
 	
-	protected void sendPackets(){
-		Packet packet = null;
-		try {
-			packet =buffer.take();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		while(buffer == null){
-			//do nothing, probably not necessary, try taking out later
-		}
-		try{
-			Boolean serverAvailable=Server.lock.tryLock();
-			if(serverAvailable){
-				Server.bufferAdd(packet);
-			}
-		}finally{
-			Server.lock.unlock();
-		}
-		sendPackets();
-	}
 
 	public void interrupt(){
 		running = false;
