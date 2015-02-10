@@ -14,14 +14,13 @@ public class Packet implements Delayed{
 		originatingClientNumber = originatingClient;
 		packetNumber = packetId;
 		delay = pipeDelay;
-		timeSentOut = null;
-		arrivalTime = null;
+		timeSentOut = System.nanoTime();
+		arrivalTime = timeSentOut + delay;
 		arrivalRateOfFire = null;
 	}
 	
 	@Override
-	public long getDelay(TimeUnit unit){
-		arrivalTime = timeSentOut+delay;
+	public long getDelay(TimeUnit NANOSECONDS){
 		return arrivalTime-System.nanoTime();
 	}
 	public int getOriginatingClientNumber(){
@@ -53,15 +52,21 @@ public class Packet implements Delayed{
 		arrivalRateOfFire = rateOfFire;
 	}
 	
+	//dirty fix here for null pointer exceptions
 	@Override
 	public int compareTo(Delayed o) {
-        if (this.arrivalTime < ((Packet) o).getArrivalTime()) {
-            return -1;
+        if(((Packet)o)!= null){
+        	if (this.arrivalTime < ((Packet) o).arrivalTime) {
+            	return -1;
+        	}
+			if (this.arrivalTime > ((Packet) o).arrivalTime){
+        		return 1;
+        	}
+        	return 0;
+        }else{
+        	return -1;
         }
-        if (this.arrivalTime >= ((Packet) o).getArrivalTime()) {
-            return 1;
-        }
-        return 0;
+        
     }
 
 }

@@ -30,8 +30,6 @@ public class Client implements Runnable{
 	protected int packetsInFlight;
 	protected long rateOfFire; // time between packets in ns
 	protected long last; // time of last packet sent (nanotime)
-//	protected int lastAck; // packet number of last ack received
-//	protected int highestBeforeFail;
 
 	volatile boolean running = false;
 	

@@ -3,31 +3,30 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Server implements Runnable{
+	
+	
 	private static int bufferCapacity;
-	private static long handlingDelay;
-	private static DelayQueue<Packet> outputQueue;
+	protected static DelayQueue<Packet> outputQueue;
 	public static ReentrantLock lock; 
-	private static long now;
-	private static long last;
 	public static LinkedBlockingQueue<Packet> buffer;
 	volatile static boolean running = true;
 	
 	public Server(int capacity, long delay){
 		bufferCapacity = capacity;
-		handlingDelay = delay;
 		buffer = new LinkedBlockingQueue<Packet>(bufferCapacity);
 		outputQueue = new DelayQueue<Packet>();
 		lock = new ReentrantLock();
-		last = System.nanoTime();
+		AckQueuer ackQueuer = new AckQueuer(delay);
+		new Thread(ackQueuer).start();
 		System.out.println("server created");
 	}
 	//data invariant:
 	public static void bufferAdd(Packet packet){
 		Boolean bufferAdded;
-		System.out.println("packet added to outputQueue");	
+		System.out.println("packet added to Server buffer");	
 		bufferAdded = buffer.offer(packet); //bug right here??
 		System.out.println("USoutputQueue "+ bufferAdded);
-		System.out.println("server outputQueue length="+ buffer.size());
+		System.out.println("server buffer length="+ buffer.size());
 	}
 
 
@@ -51,26 +50,10 @@ public class Server implements Runnable{
 			e.printStackTrace();
 		}
 		System.out.println("packet sent to destination " + destination);
-		sendAck();
+		//sendAck();
 		
 	}
 
-/*	private static void unloadoutputQueue(){
-
-		while(!outputQueue.isEmpty()){
-			now = System.nanoTime();
-			if(last+handlingDelay<=now){
-				sendAck();
-				last = System.nanoTime();
-			}
-		}
-		@SuppressWarnings("unused")
-		int waitCount = 0;
-		while(outputQueue.isEmpty()){
-			waitCount++;
-		}
-		unloadoutputQueue();
-	}*/
 	
 	public static void interrupt(){
 		running = false;
