@@ -20,11 +20,11 @@ public class Server implements Runnable{
 		new Thread(ackQueuer).start();
 		System.out.println("server created");
 	}
-	//data invariant:
+
 	public static void bufferAdd(Packet packet){
 		Boolean bufferAdded;
 		System.out.println("packet added to Server buffer");	
-		bufferAdded = buffer.offer(packet); //bug right here??
+		bufferAdded = buffer.offer(packet); 
 		System.out.println("USoutputQueue "+ bufferAdded);
 		System.out.println("server buffer length="+ buffer.size());
 	}
@@ -38,9 +38,7 @@ public class Server implements Runnable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-/*		while(ack == null){
-			//do nothing, same as client try removing later
-		}*/
+
 		int destination = ack.getOriginatingClientNumber();
 		ack.setTimeSentOut(System.nanoTime());
 		try {
@@ -50,7 +48,7 @@ public class Server implements Runnable{
 			e.printStackTrace();
 		}
 		System.out.println("packet sent to destination " + destination);
-		//sendAck();
+
 		
 	}
 
