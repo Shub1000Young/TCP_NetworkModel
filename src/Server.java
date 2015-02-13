@@ -22,10 +22,10 @@ public class Server implements Runnable{
 	}
 
 	public static void bufferAdd(Packet packet){
-		Boolean bufferAdded;
+		System.out.println("S "+ packet.getPacketNumber());
 		System.out.println("packet added to Server buffer");	
-		bufferAdded = buffer.offer(packet); 
-		System.out.println("USoutputQueue "+ bufferAdded);
+		buffer.offer(packet); 
+
 		System.out.println("server buffer length="+ buffer.size());
 	}
 

@@ -9,8 +9,10 @@ public class AckQueuer implements Runnable{
 		last = System.nanoTime()-handlingDelay;
 	}
 	private static void queueAcks(){
-		while(!Server.buffer.isEmpty()){
+		while(true){
+			//wait for handling delay to elapse-has to be a better way to do this
 			if(last+handlingDelay<=System.nanoTime()){
+				//add head of buffer to tail of delayQueue
 				try {
 					Server.outputQueue.add(Server.buffer.take());
 					last = System.nanoTime();
@@ -18,9 +20,9 @@ public class AckQueuer implements Runnable{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
 			}
 		}
-		//queueAcks();
 	}
 	
 	public void interrupt(){
@@ -30,6 +32,7 @@ public class AckQueuer implements Runnable{
 	public void run() {
 		while(running){
 			queueAcks();
+			
 		}
 		
 	}

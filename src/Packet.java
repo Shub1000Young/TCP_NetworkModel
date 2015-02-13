@@ -55,7 +55,7 @@ public class Packet implements Delayed{
 	//dirty fix here for null pointer exceptions
 	@Override
 	public int compareTo(Delayed o) {
-        if(((Packet)o)!= null){
+       /* if(((Packet)o)!= null){*/
         	if (this.arrivalTime < ((Packet) o).arrivalTime) {
             	return -1;
         	}
@@ -63,9 +63,9 @@ public class Packet implements Delayed{
         		return 1;
         	}
         	return 0;
-        }else{
+        /*}else{
         	return -1;
-        }
+        }*/
         
     }
 

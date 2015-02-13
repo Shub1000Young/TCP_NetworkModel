@@ -9,19 +9,23 @@ public class PacketSender implements Runnable{
 		running = true;
 	}
 	
+	
+	//use: transferPackets()
+	//pre: none
+	//post: packet added to server buffer if server not busy, otherwise packet dropped
 	protected void transferPackets(){
 
 		Packet packet = null;
+		//takes packet from end of Client delayQueue, waiting if necessary
 		try {
 			packet =Client.clientArray.get(client).uploadPipe.take();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-/*		while(packet == null){
-			//do nothing, probably not necessary, try taking out later
-		}*/
+		//test for server lock
 		if(!Server.lock.isLocked()){
+			//add packet to server buffer if server not locked
 			try{
 				Server.lock.lock();
 				Server.bufferAdd(packet);
@@ -29,6 +33,7 @@ public class PacketSender implements Runnable{
 			Server.lock.unlock();
 			}
 		}
+		//packet dropped if server locked
 	}
 
 	public void interrupt(){
